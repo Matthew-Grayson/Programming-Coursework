@@ -9,11 +9,14 @@
  *   Space complexity O(1).
  *
  * References (APA):
- * Ochem, P., & Rao, M. (2012). Odd perfect numbers are greater than 10^1500.
- *   Mathematics of Computation, 81(279), 1869–1877.
- *   https://www.ams.org/journals/mcom/2012-81-279/S0025-5718-2012-02563-4/S0025-5718-2012-02563-4.pdf
- * Oracle. (n.d.). java.util (Java Platform SE 8). In Java Platform, Standard Edition 8 API Specification.
- *   Retrieved September 26, 2025, from https://docs.oracle.com/javase/8/docs/api/java/util/package-summary.html
+ *   Ochem, P., & Rao, M. (2012). Odd perfect numbers are greater than 10^1500.
+ *     Mathematics of Computation, 81(279), 1869–1877.
+ *     https://www.ams.org/journals/mcom/2012-81-279/S0025-5718-2012-02563-4/S0025-5718-2012-02563-4.pdf
+ *   Nelsen, R. B. (2018). Even perfect numbers end in 6 or 28.
+ *     Mathematics Magazine, 91, 140–141.
+ *     https://doi.org/10.1080/0025570X.2017.1409558
+ *   Oracle. (n.d.). java.util (Java Platform SE 8). In Java Platform, Standard Edition 8 API Specification.
+ *     Retrieved September 26, 2025, from https://docs.oracle.com/javase/8/docs/api/java/util/package-summary.html
  */
 
 
@@ -50,7 +53,8 @@ public class PerfectNumbers {
          *
          * Uses an optimized algorithm that adds divisors in complementary pairs
          * reducing the search range requirement to the square root of each number;
-         * skips odd numbers since the theoretical lower bound of an odd perfect number is > 10^1500.
+         * skips odd numbers since theoretical lower bound of an odd perfect number is > 10^1500 (Ochem & Rao, 2012);
+         * skips even numbers not ending in 6 or 28 based on properties of even perfect numbers (Nelsen, 2018).
          */
 
         // prompt user for limit and validate input
@@ -69,8 +73,11 @@ public class PerfectNumbers {
             }
         }
         System.out.println("Perfect numbers up to " + limit + ":");
-        // optimized approach checking divisors up to sqrt(num) and skipping odd numbers
+        // optimized approach checking divisors up to sqrt(num) and skipping numbers not ending in 6 or 28
         for (long num = 2; num <= limit; num+=2) {
+            if (!(num % 10 == 6 || num % 100 == 28)) {
+                continue;
+            }
             long sum = 1;
             long squareRoot = (long)Math.sqrt(num);
             for (long div = 2; div <= squareRoot; div++) {
