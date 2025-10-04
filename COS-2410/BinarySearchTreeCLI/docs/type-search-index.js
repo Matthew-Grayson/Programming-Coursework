@@ -1,1 +1,0 @@
-typeSearchIndex = [{"l":"All Classes and Interfaces","u":"allclasses-index.html"},{"p":"BinarySearchTreeCLI","l":"BinarySearchTree"},{"p":"BinarySearchTreeCLI","l":"BinarySearchTreeCLI"},{"p":"BinarySearchTreeCLI","l":"BinarySearchTree.Traversal"}];updateSearchResults();
