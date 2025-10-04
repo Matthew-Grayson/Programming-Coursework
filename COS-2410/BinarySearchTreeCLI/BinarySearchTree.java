@@ -5,16 +5,17 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * A simple binary search tree (BST) implementation.
+ * An AVL (self-balancing) binary search tree (BST) implementation.
  *
- * <p>Supports creation of a balanced BST, as well as insertion, deletion,
- * and traversals (in-order, pre-order, post-order).</p>
+ * <p>This tree supports creation, insertion, deletion, and traversals
+ * (in-order, pre-order, post-order) of a BST. After each insertion
+ * or deletion, the tree automatically rebalances using the AVL rules so
+ * that the height difference (balance factor) of any node is in {-1, 0, 1}.
  *
- * <p>Limitations:
+ * <p>Notes:
  * <ul>
- *   <li>Does not self-balance when adding or deleting values
- *       (e.g., no AVL or Red-Black balancing).</li>
  *   <li>Duplicates are ignored (insertion of an existing value has no effect).</li>
+ *   <li>All operations assume keys are non-null and mutually comparable.</li>
  * </ul>
  *
  * @param <T> the element type stored in this tree; must implement {@link Comparable}
@@ -22,29 +23,24 @@ import java.util.Objects;
 public final class BinarySearchTree<T extends Comparable<? super T>> {
 
     /**
-     * Creates an empty BST.
+     * Creates an empty AVL tree.
      */
-    public BinarySearchTree() {
-        // empty tree
-    }
+    public BinarySearchTree() { }
 
     /**
-     * A node in the binary search tree.
+     * A node in the AVL tree.
      *
-     * <p>Each node stores a key of type {@code U}, plus references to
-     * its left and right children.</p>
+     * <p>Each node stores a key, pointers to left and right children, and its
+     * cached {@code height}. For null children the height is treated as 0.</p>
      *
-     * @param <U> the type of the key stored in the node
+     * @param <U> the node key type
      */
     private static final class Node<U> {
         U key;
         Node<U> left, right;
+        /** Height of the node (leaf = 1). */
+        int height = 1;
 
-        /**
-         * Constructs a new node with the given key.
-         *
-         * @param k the key value to store in this node
-         */
         Node(U k) { this.key = k; }
     }
 
@@ -63,7 +59,8 @@ public final class BinarySearchTree<T extends Comparable<? super T>> {
     /**
      * Inserts a new key into the tree.
      *
-     * <p>If the key already exists, the insertion is ignored.</p>
+     * <p>If the key already exists, the insertion is ignored. The tree will be
+     * rebalanced along the insertion path per the AVL rules.</p>
      *
      * @param key the key to insert (must be non-null)
      * @throws NullPointerException if {@code key} is null
@@ -74,18 +71,14 @@ public final class BinarySearchTree<T extends Comparable<? super T>> {
     }
 
     /**
-     * Recursive helper method for insertion.
+     * Deletes a key from the tree, if present.
      *
-     * @param n   the current subtree root
-     * @param key the key to insert
-     * @return the updated subtree root
+     * <p>The tree is rebalanced along the deletion path.</p>
+     *
+     * @param key the key to delete
      */
-    private Node<T> insert(Node<T> n, T key) {
-        if (n == null) return new Node<>(key);
-        int cmp = key.compareTo(n.key);
-        if (cmp < 0)       n.left = insert(n.left, key);
-        else if (cmp > 0)  n.right = insert(n.right, key);
-        return n;
+    public void delete(T key) {
+        root = deleteRec(root, key);
     }
 
     /**
@@ -105,36 +98,159 @@ public final class BinarySearchTree<T extends Comparable<? super T>> {
     }
 
     /**
-     * Deletes a key from the tree, if present.
-     *
-     * @param key the key to delete
+     * Returns the height of a node, treating {@code null} as height 0.
      */
-    public void delete(T key) {
-        root = deleteRec(root, key);
+    private static int height(Node<?> n) {
+        return (n == null) ? 0 : n.height;
     }
 
     /**
-     * Recursive helper method for deletion.
+     * Recomputes the cached {@link Node#height} from its children.
+     */
+    private static <U> void updateHeight(Node<U> n) {
+        n.height = 1 + Math.max(height(n.left), height(n.right));
+    }
+
+    /**
+     * Computes the AVL balance factor for a node.
      *
-     * <p>Cases handled:
-     * <ul>
-     *   <li>If the node is null, the key was not found.</li>
-     *   <li>If the key is smaller, recurse into the left subtree.</li>
-     *   <li>If the key is larger, recurse into the right subtree.</li>
-     *   <li>If the key is found:
-     *     <ul>
-     *       <li>No left child → return right child.</li>
-     *       <li>No right child → return left child.</li>
-     *       <li>Two children → replace this node with its in-order successor
-     *           (minimum key in the right subtree).</li>
-     *     </ul>
-     *   </li>
-     * </ul>
-     * </p>
+     * <p>Defined as {@code height(left) - height(right)}. Valid AVL nodes
+     * must keep this in the range [-1, 1].</p>
+     */
+    private static int balanceFactor(Node<?> n) {
+        return (n == null) ? 0 : height(n.left) - height(n.right);
+    }
+
+    /**
+     * Right rotation (single rotation) around {@code y}.
+     *
+     * @param y subtree root to rotate
+     * @return new subtree root
+     */
+    private static <U> Node<U> rotateRight(Node<U> y) {
+        Node<U> x  = y.left;
+        Node<U> T2 = x.right;
+
+        x.right = y;
+        y.left  = T2;
+
+        updateHeight(y);
+        updateHeight(x);
+        return x;
+    }
+
+    /**
+     * Left rotation (single rotation) around {@code x}.
+     *
+     * @param x subtree root to rotate
+     * @return new subtree root
+     */
+    private static <U> Node<U> rotateLeft(Node<U> x) {
+        Node<U> y  = x.right;
+        Node<U> T2 = y.left;
+
+        y.left  = x;
+        x.right = T2;
+
+        updateHeight(x);
+        updateHeight(y);
+        return y;
+    }
+
+    /**
+     * Rebalances a node after an insertion, using the inserted {@code key}
+     * to decide between single and double rotations for the ambiguous cases.
+     *
+     * @param n subtree root
+     * @param key key being inserted
+     * @return balanced subtree root
+     */
+    private Node<T> rebalanceAfterInsert(Node<T> n, T key) {
+        int bf = balanceFactor(n);
+
+        if (bf > 1) {
+            System.out.println("Rebalancing node " + n.key + "...");
+            if (key.compareTo(n.left.key) < 0) {
+                return rotateRight(n);
+            } else {
+                n.left = rotateLeft(n.left);
+                return rotateRight(n);
+            }
+        }
+        if (bf < -1) {
+            System.out.println("Rebalancing node " + n.key + "...");
+            if (key.compareTo(n.right.key) > 0) {
+                return rotateLeft(n);
+            } else {
+                n.right = rotateRight(n.right);
+                return rotateLeft(n);
+            }
+        }
+        return n; // already balanced
+    }
+
+    /**
+     * Rebalances a node after a deletion. Because the deleted key may no longer
+     * exist, we decide rotations using the children's balance factors.
+     *
+     * @param n subtree root
+     * @return balanced subtree root
+     */
+    private Node<T> rebalanceAfterDelete(Node<T> n) {
+        int bf = balanceFactor(n);
+
+        if (bf > 1) {
+            System.out.println("Rebalancing node " + n.key + "...");
+            if (balanceFactor(n.left) >= 0) {
+                return rotateRight(n);
+            } else {
+                n.left = rotateLeft(n.left);
+                return rotateRight(n);
+            }
+        }
+        if (bf < -1) {
+            System.out.println("Rebalancing node " + n.key + "...");
+            if (balanceFactor(n.right) <= 0) {
+                return rotateLeft(n);
+            } else {
+                n.right = rotateRight(n.right);
+                return rotateLeft(n);
+            }
+        }
+        return n;
+    }
+
+    /**
+     * Recursive AVL insertion.
+     *
+     * @param n   the current subtree root
+     * @param key the key to insert
+     * @return the updated (and possibly rotated) subtree root
+     */
+    private Node<T> insert(Node<T> n, T key) {
+        if (n == null) return new Node<>(key);
+
+        int cmp = key.compareTo(n.key);
+        if (cmp < 0) {
+            n.left = insert(n.left, key);
+        } else if (cmp > 0) {
+            n.right = insert(n.right, key);
+        } else {
+            return n; // ignore duplicates
+        }
+
+        updateHeight(n);
+        return rebalanceAfterInsert(n, key);
+    }
+
+    /**
+     * Recursive AVL deletion.
+     *
+     * <p>Rebalances the subtree on the way back up after the removal.</p>
      *
      * @param n   the current subtree root
      * @param key the key to delete
-     * @return the updated subtree root
+     * @return the updated (and possibly rotated) subtree root
      */
     private Node<T> deleteRec(Node<T> n, T key) {
         if (n == null) return null;
@@ -144,15 +260,16 @@ public final class BinarySearchTree<T extends Comparable<? super T>> {
         } else if (cmp > 0) {
             n.right = deleteRec(n.right, key);
         } else {
-            // Found the node to delete
             if (n.left == null)  return n.right;
             if (n.right == null) return n.left;
-            // Two children: replace with successor
+
             Node<T> succ = min(n.right);
             n.key = succ.key;
             n.right = deleteRec(n.right, succ.key);
         }
-        return n;
+
+        updateHeight(n);
+        return rebalanceAfterDelete(n);
     }
 
     /**
@@ -237,6 +354,8 @@ public final class BinarySearchTree<T extends Comparable<? super T>> {
      * Builds a balanced BST containing all integers in the range
      * {@code [minVal, maxVal]} inclusive.
      *
+     * <p>The result is a valid AVL tree because heights are computed bottom-up.</p>
+     *
      * @param minVal the minimum value in the range
      * @param maxVal the maximum value in the range
      * @return a new balanced BST containing the range of values
@@ -248,15 +367,13 @@ public final class BinarySearchTree<T extends Comparable<? super T>> {
     }
 
     /**
-     * Recursively builds a balanced BST from a range of integers.
-     *
-     * <p>Base case: if {@code minVal > maxVal}, return {@code null}.</p>
-     * <p>Recursive step: choose the midpoint as the root, build left and right subtrees
-     * from the corresponding halves of the range.</p>
+     * Recursively builds a balanced BST from a range of integers and
+     * initializes node heights.
      *
      * @param minVal the minimum value in the range
      * @param maxVal the maximum value in the range
-     * @return the root node of the constructed balanced BST, or {@code null} if the range is empty
+     * @return the root node of the constructed balanced AVL tree,
+     * or {@code null} if the range is empty
      */
     private static Node<Integer> buildBalanced(int minVal, int maxVal) {
         if (minVal > maxVal) return null;
@@ -264,6 +381,8 @@ public final class BinarySearchTree<T extends Comparable<? super T>> {
         Node<Integer> r = new Node<>(mid);
         r.left  = buildBalanced(minVal, mid - 1);
         r.right = buildBalanced(mid + 1, maxVal);
+        // initialize height bottom-up
+        r.height = 1 + Math.max(height(r.left), height(r.right));
         return r;
     }
 }

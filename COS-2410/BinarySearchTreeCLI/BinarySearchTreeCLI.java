@@ -38,7 +38,7 @@ public final class BinarySearchTreeCLI {
                     case "4" -> printTraversal(BinarySearchTree.Traversal.InOrder);
                     case "5" -> printTraversal(BinarySearchTree.Traversal.PreOrder);
                     case "6" -> printTraversal(BinarySearchTree.Traversal.PostOrder);
-                    case "7" -> { System.out.println("Goodbye!"); return; }
+                    case "7" -> { System.out.println("\nGoodbye!"); return; }
                     default  -> System.out.println("Invalid choice.");
                 }
                 pause(sc);
@@ -49,13 +49,13 @@ public final class BinarySearchTreeCLI {
     /** Prints the available menu options. */
     private static void printMenu() {
         System.out.println("\n=== Binary Search Tree CLI ===");
-        System.out.println("1. Create a balanced BST from range");
-        System.out.println("2. Add a node");
-        System.out.println("3. Delete a node");
-        System.out.println("4. Print InOrder traversal");
-        System.out.println("5. Print PreOrder traversal");
-        System.out.println("6. Print PostOrder traversal");
-        System.out.println("7. Exit\n");
+        System.out.println("  1. Create a balanced BST from range");
+        System.out.println("  2. Add a node");
+        System.out.println("  3. Delete a node");
+        System.out.println("  4. Print InOrder traversal");
+        System.out.println("  5. Print PreOrder traversal");
+        System.out.println("  6. Print PostOrder traversal");
+        System.out.println("  7. Exit");
         System.out.print("Enter choice: ");
     }
 
@@ -68,7 +68,7 @@ public final class BinarySearchTreeCLI {
         int minVal = 1;
         int maxVal = 7;
         tree = BinarySearchTree.fromInclusiveRange(minVal, maxVal);
-        System.out.printf("Created balanced BST with values %d through %d%n", minVal, maxVal);
+        System.out.printf("\nCreated balanced BST with values %d through %d%n", minVal, maxVal);
     }
 
     /**
@@ -78,9 +78,10 @@ public final class BinarySearchTreeCLI {
      */
     private static void addNode(Scanner sc) {
         ensureTree();
-        int val = readInt(sc, "Enter value to insert: ");
+        int val = readInt(sc, "\nEnter value to insert: ");
+        System.out.println("Inserting node " + val + "... ");
         tree.add(val);
-        System.out.println("Inserted " + val);
+        System.out.println("Done.");
     }
 
     /**
@@ -90,9 +91,10 @@ public final class BinarySearchTreeCLI {
      */
     private static void deleteNode(Scanner sc) {
         ensureTree();
-        int val = readInt(sc, "Enter value to delete: ");
+        int val = readInt(sc, "\nEnter value to delete: ");
+        System.out.println("Deleting node " + val + "... ");
         tree.delete(val);
-        System.out.println("Deleted " + val);
+        System.out.println("Done.");
     }
 
     /**
@@ -103,7 +105,7 @@ public final class BinarySearchTreeCLI {
     private static void printTraversal(BinarySearchTree.Traversal t) {
         ensureTree();
         List<Integer> vals = tree.traverse(t);
-        System.out.println(t + ": " + String.join(", ",
+        System.out.println("\n" + t + ": " + String.join(", ",
                 vals.stream().map(String::valueOf).toList()));
     }
 
